@@ -7,9 +7,10 @@ namespace Excel
 {
     public class Table
     {
-        List<Cell[]> Cells;
+        public List<Cell[]> Cells;
+        //string FileName;
 
-        public void ReadTable(StreamReader Reader, List<Equation> EquationList)
+        public void ReadTable(StreamReader Reader, List<Equation> EquationList, Queue<string> FilesToRead, string FileName)
         {
             int rows = 0;
             string line = Reader.ReadLine();
@@ -36,8 +37,8 @@ namespace Excel
                     //cell is equation
                     else if (splittedLine[columns][0] == '=')
                     {
-                        Address cellAdr = new Address(rows, columns, this);
-                        Cell newCell = Cell.TryCreateEquationCell(splittedLine[columns], cellAdr, EquationList);
+                        Address cellAdr = new Address(rows, columns, /*this*/ FileName);
+                        Cell newCell = Cell.TryCreateEquationCell(splittedLine[columns], cellAdr, EquationList, FilesToRead);
                         tableLine[columns] = newCell;
                     }
                     //content of cell is invalid
@@ -53,6 +54,12 @@ namespace Excel
                 rows++;
                 line = Reader.ReadLine();
             }
+        }
+
+        public Table (/*string fileName*/)
+        {
+            //this.FileName = fileName;
+            this.Cells = new List<Cell[]>();
         }
     }
 

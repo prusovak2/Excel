@@ -16,7 +16,7 @@ namespace Excel
             this.Type = type;
         }
 
-        public static Cell TryCreateEquationCell(string input, Address AdrOfCellCreated , List<Equation> equationList)
+        public static Cell TryCreateEquationCell(string input, Address AdrOfCellCreated , List<Equation> equationList, Queue<string> FilesToRead)
         {
             char[] delims = { '=', '+', '-', '*', '/' };
             string[] splittedInput = input.Split(delims);
@@ -34,12 +34,14 @@ namespace Excel
             }
 
             //Length==3
-            bool a = Address.TryParse(splittedInput[1], out Address firstArg);
-            bool b = Address.TryParse(splittedInput[1], out Address secondArg);
+            bool a = Address.TryParse(splittedInput[1], out Address firstArg, FilesToRead);
+            bool b = Address.TryParse(splittedInput[2], out Address secondArg, FilesToRead);
+            int opPosition = 1 + splittedInput[1].Length;
+            char operand = input[opPosition];
             if (a && b) //valid equation
             {
                 Cell newCell = new Cell(default, CellType.Equation);
-                Equation eq = new Equation(AdrOfCellCreated, firstArg, secondArg);
+                Equation eq = new Equation(AdrOfCellCreated, firstArg, secondArg, operand);
                 equationList.Add(eq);
                 return newCell;
             }
@@ -69,18 +71,19 @@ namespace Excel
 
     public struct Address
     {
-        int Row;
-        int Column;
-        Table File;
+        public int Row;
+        public int Column;
+        // Table File;
+        public string File;
 
-        public Address(int row, int column, Table file)
+        public Address(int row, int column, string file)
         {
             this.Row = row;
             this.Column = column;
             this.File = file;
         }
 
-        public static bool TryParse(String probaplyAddress, out Address address )
+        public static bool TryParse(String probablyAddress, out Address address, Queue<string> FilesToRead )
         {
             const int A = 65;
             const int Z = 90;
@@ -88,32 +91,103 @@ namespace Excel
             const int nine = 57;
 
             int row = 0;
-            int column = 0;
+            int column = -1; //really important for making Horner to index from 0
 
-            for (int i = 0; i < probaplyAddress.Length; i++)
+            string cellPartOfAdr;
+            string file = default;
+            string[] splittedAdr = probablyAddress.Split('!', StringSplitOptions.RemoveEmptyEntries);
+            
+            if(splittedAdr.Length == 2) //address of cell from another file
             {
-                while(probaplyAddress[i]>=A && probaplyAddress[i] <= Z)
-                {
-
-                }
+                cellPartOfAdr = splittedAdr[1];
+                file = splittedAdr[0];
+                //FilesToRead.Enqueue(file); //another file to read has been found
             }
+            else
+            {
+                cellPartOfAdr = probablyAddress; //address of cell from the same file
+            }
+
+            int recordCounter = 0;
+            int i = 0;
+            while(i<cellPartOfAdr.Length && cellPartOfAdr[i]>=A && cellPartOfAdr[i] <= Z )
+            {
+                column = (column + 1) * 26 + cellPartOfAdr[i] - A; //Horner scheme
+                recordCounter++;
+                i++;
+            }
+            if (recordCounter == 0) //column part of adr is missing
+            {
+                address = default;
+                return false;
+            }
+            recordCounter = 0;
+            while (i < cellPartOfAdr.Length && cellPartOfAdr[i] >= zero && cellPartOfAdr[i] <= nine)
+            {
+                row = row * 10 + cellPartOfAdr[i] - zero;
+                recordCounter++;
+                i++;
+            }
+            row--; //index from 0
+            if (recordCounter == 0 || row<0 ) //flawed row part
+            {
+                address = default;
+                return false;
+            }
+
+            address = new Address(row, column, file);
+            
+            //TODO:improve system of file reading
+            if (file != null)
+            {
+                FilesToRead.Enqueue(file); //another file to read has been found
+            }
+
+            return true;
         }
     }
 
     public struct Equation
     {
-        Address OwnAdr;
-        Address Arg1;
-        Address Arg2;
+        public Address OwnAdr;
+        public Address Arg1;
+        public Address Arg2;
+        public Operand operand;
 
-        public Equation(Address own, Address arg1, Address arg2)
+
+        public Equation(Address own, Address arg1, Address arg2, char operand)
         {
             this.OwnAdr = own;
             this.Arg1 = arg1;
             this.Arg2 = arg2;
+
+            switch (operand)
+            {
+                case '+':
+                    this.operand = Operand.plus;
+                    break;
+                case '-':
+                    this.operand = Operand.minus;
+                    break;
+                case '*':
+                    this.operand = Operand.multi;
+                    break;
+                case '/':
+                    this.operand = Operand.div;
+                    break;
+                default:
+                    this.operand = Operand.plus;
+                    throw new Exception("Invalid behavior of equation builder");
+            }
         }
     }
-
+    public enum Operand :byte
+    {
+        plus,
+        minus,
+        multi,
+        div,
+    }
 
 }
     

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Excel
@@ -17,6 +18,9 @@ namespace Excel
             {
                 Console.WriteLine("x: {0}", item);
             }
+
+            HashSet<string> FilesThatHadBeenRead = new HashSet<string>();
+            FilesThatHadBeenRead.Add(args[0]);
 
         }
 
