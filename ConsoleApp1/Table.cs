@@ -56,6 +56,22 @@ namespace Excel
             }
         }
 
+        public void PrintTable(StreamWriter writer)
+        {
+            for (int i = 0; i < this.Cells.Count; i++)
+            {
+                for (int j = 0; j < this.Cells[i].Length-1; j++)
+                {
+                    this.Cells[i][j].PrintCell(writer);
+                    writer.Write(" ");
+                }
+                //do not add space after last record on line
+                this.Cells[i][this.Cells[i].Length - 1].PrintCell(writer);
+                writer.WriteLine();
+            }
+            writer.Flush();
+        }
+
         public Table (/*string fileName*/)
         {
             //this.FileName = fileName;

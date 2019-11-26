@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 
 namespace Excel
 {
@@ -49,6 +50,41 @@ namespace Excel
             {
                 Cell newCell = new Cell(default, CellType.FlawedFormula);
                 return newCell;
+            }
+        }
+        public void PrintCell(StreamWriter writer)
+        {
+            switch (this.Type)
+            {
+                case CellType.Number:
+                    writer.Write(this.Value);
+                    return;
+                case CellType.Empty:
+                    writer.Write("[]");
+                    return;
+                case CellType.Inval:
+                    writer.Write("#INVVAL");
+                    return;
+                case CellType.Error:
+                    writer.Write("#ERROR");
+                    return;
+                case CellType.DivZero:
+                    writer.Write("#DIV0");
+                    return;
+                case CellType.Cycle:
+                    writer.Write("#CYCLE");
+                    return;
+                case CellType.MissOperator:
+                    writer.Write("#MISSOP");
+                    return;
+                case CellType.FlawedFormula:
+                    writer.Write("#FORMULA");
+                    return;
+                case CellType.Equation:
+                    writer.Write("eq");
+                    return;
+                default:
+                    throw new Exception("unexpected cell type to be printed");
             }
         }
         
@@ -178,6 +214,23 @@ namespace Excel
                 default:
                     this.operand = Operand.plus;
                     throw new Exception("Invalid behavior of equation builder");
+            }
+        }
+        public int CountEquation(int arg1, int arg2)
+        {
+            switch (this.operand)
+            {
+                case Operand.plus:
+                    return arg1 + arg2;
+                case Operand.minus:
+                    return arg1 - arg2;
+                case Operand.multi:
+                    return arg1 * arg2;
+                case Operand.div:
+                    return arg1 / arg2;
+                default:
+                    throw new Exception("totaly senceless behaviour");
+
             }
         }
     }

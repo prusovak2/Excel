@@ -138,8 +138,40 @@ namespace ExcelTests
                 }
                 System.Console.WriteLine();
             }
+
+            System.Console.WriteLine();
+            System.Console.WriteLine();
+
+            foreach (var item in equations)
+            {
+                System.Console.WriteLine("{0} {1}:{2}",item.operand, item.OwnAdr.Column, item.OwnAdr.Row);
+            }
         }
-      
-        
+        [TestMethod]
+        public void CountEquationTest()
+        {
+            Assert.Fail();
+        }
+        [TestMethod]
+        public void PrintCellTest()
+        {
+            Assert.Fail();
+        }
+        [TestMethod]
+        public void PrintTable()
+        {
+            Queue<string> q = new Queue<string>();
+            List<Equation> equations = new List<Equation>();
+            StreamReader reader = new StreamReader(@"TestFiles/Ins/SimpleTable.txt");
+
+            StreamWriter writer = new StreamWriter(@"TestFiles/Outs/SimpleTable.txt");
+
+            Table t = new Table();
+            t.ReadTable(reader, equations, q, "SimpleTable.txt");
+            t.PrintTable(writer);
+            writer.Close();
+        }
+
+
     }
 }
