@@ -11,6 +11,8 @@ namespace Excel
         public int Value;
         public CellType Type;
 
+        public static int EquationCounter=0;
+
         public Cell(int value, CellType type)
         {
             this.Value = value;
@@ -41,7 +43,11 @@ namespace Excel
             char operand = input[opPosition];
             if (a && b) //valid equation
             {
-                Cell newCell = new Cell(default, CellType.Equation);
+                Cell newCell = new Cell(Cell.EquationCounter, CellType.Equation);
+
+                Cell.EquationCounter++;
+
+
                 Equation eq = new Equation(AdrOfCellCreated, firstArg, secondArg, operand);
                 equationList.Add(eq);
                 return newCell;

@@ -71,6 +71,46 @@ namespace Excel
             }
             writer.Flush();
         }
+        /// <summary>
+        /// To prevent accesing non existing cells
+        /// </summary>
+        /// <param name="adr"></param>
+        /// <returns></returns>
+        public CellType GetType(Address adr)
+        {
+            if(adr.Row>= this.Cells.Count || adr.Column>= this.Cells[adr.Row].Length)
+            {
+                return CellType.Empty;
+            }
+            return this.Cells[adr.Row][adr.Column].Type;
+        }
+
+        /// <summary>
+        /// To prevent accesing non existing cells
+        /// </summary>
+        /// <param name="adr"></param>
+        /// <returns></returns>
+        public int GetValue(Address adr)
+        {
+            if (adr.Row >= this.Cells.Count || adr.Column >= this.Cells[adr.Row].Length)
+            {
+                return 0;
+            }
+            return this.Cells[adr.Row][adr.Column].Value;
+        }
+
+        public void SetType(Address adr, CellType type)
+        {
+            this.Cells[adr.Row][adr.Column].Type = type;
+        }
+
+        //setting value sets cell type to number
+        public void SetNumberTypeAndValue(Address adr, int value)
+        {
+            this.Cells[adr.Row][adr.Column].Type = CellType.Number;
+            this.Cells[adr.Row][adr.Column].Value = value;
+
+        }
 
         public Table (/*string fileName*/)
         {
