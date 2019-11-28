@@ -31,7 +31,7 @@ namespace Excel
                     //cell is empty
                     else if(splittedLine[columns] == "[]")
                     {
-                        Cell newCell = new Cell(default, CellType.Empty);
+                        Cell newCell = new Cell(default(int), CellType.Empty);
                         tableLine[columns] = newCell;
                     }
                     //cell is equation
@@ -44,7 +44,7 @@ namespace Excel
                     //content of cell is invalid
                     else
                     {
-                        Cell newCell = new Cell(default, CellType.Inval);
+                        Cell newCell = new Cell(default(int), CellType.Inval);
                         tableLine[columns] = newCell;
                     }
                     
@@ -60,13 +60,17 @@ namespace Excel
         {
             for (int i = 0; i < this.Cells.Count; i++)
             {
-                for (int j = 0; j < this.Cells[i].Length-1; j++)
+                for (int j = 0; j < this.Cells[i].Length; j++)
                 {
                     this.Cells[i][j].PrintCell(writer);
-                    writer.Write(" ");
+                    if(j + 1 < this.Cells[i].Length)
+                    {
+                        writer.Write(" ");
+                    }
+                    
                 }
                 //do not add space after last record on line
-                this.Cells[i][this.Cells[i].Length - 1].PrintCell(writer);
+                //this.Cells[i][this.Cells[i].Length - 1].PrintCell(writer);
                 writer.WriteLine();
             }
             writer.Flush();

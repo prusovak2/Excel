@@ -8,30 +8,36 @@ namespace Excel
     {
         static void Main(string[] args)
         {
-            string pokus = "=AB4+CD5";
-            char[] delims = { '=', '+', '-', '*', '/' };
-            string[] splittedInput = pokus.Split(delims);
 
-            Console.WriteLine(splittedInput.Length);
-
-            foreach (var item in splittedInput)
+            bool opened = OpenFile(args, out StreamReader Reader, out StreamWriter Writer);
+            if (!opened)
             {
-                Console.WriteLine("x: {0}", item);
+                return;
             }
+            
+            Table table = new Table();
 
-            HashSet<string> FilesThatHadBeenRead = new HashSet<string>();
-            FilesThatHadBeenRead.Add(args[0]);
+            List<Equation> EquationList = new List<Equation>();
+            Queue<string> FilestoRead = new Queue<string>();
+
+            table.ReadTable(Reader, EquationList, FilestoRead, args[0]);
+            for (int i = 0; i < EquationList.Count; i++)
+            {
+                EquationSolver.Solve(table, EquationList[i], EquationList);
+            }
+            table.PrintTable(Writer);
+            
 
         }
 
-        private static int OpenFile(string[] args, out StreamReader Reader, out StreamWriter Writer)
+        private static bool OpenFile(string[] args, out StreamReader Reader, out StreamWriter Writer)
         {
             if (args.Length != 2)
             {
                 Reader = null;
                 Writer = null;
                 Console.WriteLine("Argument Error");
-                return 0;
+                return false;
             }
             try
             {
@@ -42,7 +48,7 @@ namespace Excel
                 Writer = null;
                 Reader = null;
                 Console.WriteLine("File Error");
-                return 0;
+                return false;
             }
             try
             {
@@ -53,9 +59,9 @@ namespace Excel
                 Writer = null;
                 Reader = null;
                 Console.WriteLine("File Error");
-                return 0;
+                return false;
             }
-            return 1;
+            return true;
 
         }
 

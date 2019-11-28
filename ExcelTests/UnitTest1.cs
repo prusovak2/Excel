@@ -12,6 +12,7 @@ namespace ExcelTests
         public void TryParseAddress()
         {
             string normal = "B3";
+            string high = "AOT1";       
             string longer = "ABC500";
             string flawed = "abcd444";
             string file = "mnau!CC42";
@@ -53,6 +54,13 @@ namespace ExcelTests
             Assert.AreEqual(80, adr.Column); System.Console.WriteLine(adr.Column);
             Assert.AreEqual(41, adr.Row); System.Console.WriteLine(adr.Row);
             Assert.AreEqual("mnau", adr.File); System.Console.WriteLine(adr.File);
+
+             
+            valid = Address.TryParse(high, out adr, q);          
+            Assert.IsTrue(valid);
+            System.Console.WriteLine(adr.Column);
+            Assert.AreEqual(1085, adr.Column); 
+            Assert.AreEqual(0, adr.Row); System.Console.WriteLine(adr.Row);
 
         }
 
@@ -170,6 +178,66 @@ namespace ExcelTests
             t.ReadTable(reader, equations, q, "SimpleTable.txt");
             t.PrintTable(writer);
             writer.Close();
+        }
+        [TestMethod]
+        public void generalTest()
+        {
+            Queue<string> q = new Queue<string>();
+            List<Equation> equations = new List<Equation>();
+            StreamReader reader = new StreamReader(@"TestFiles/Ins/HugeFile.txt");
+
+            StreamWriter writer = new StreamWriter(@"TestFiles/Tmps/HugeOut.txt");
+            Table t = new Table();
+            t.ReadTable(reader, equations, q, "Huge.txt");
+
+            for (int i = 0; i < equations.Count; i++)
+            {
+                EquationSolver.Solve(t, equations[i], equations);
+            }
+            t.PrintTable(writer);
+            writer.Close();
+            bool same = Utils.FileDiff(@"TestFiles/Outs/HugeFile.eval.txt", @"TestFiles/Tmps/HugeOut.txt");
+            Assert.IsTrue(same);       
+        }
+        [TestMethod]
+        public void Cycle1Test()
+        {
+            Queue<string> q = new Queue<string>();
+            List<Equation> equations = new List<Equation>();
+            StreamReader reader = new StreamReader(@"TestFiles/Ins/CycleTest.txt");
+
+            StreamWriter writer = new StreamWriter(@"TestFiles/Tmps/CycleMy.txt");
+            Table t = new Table();
+            t.ReadTable(reader, equations, q, "Huge.txt");
+
+            for (int i = 0; i < equations.Count; i++)
+            {
+                EquationSolver.Solve(t, equations[i], equations);
+            }
+            t.PrintTable(writer);
+            writer.Close();
+            bool same = Utils.FileDiff(@"TestFiles/Outs/CycleTestResult.txt", @"TestFiles/Tmps/CycleMy.txt");
+            Assert.IsTrue(same);
+        }
+        [TestMethod]
+        public void SimpleCycleTest()
+        {
+            Queue<string> q = new Queue<string>();
+            List<Equation> equations = new List<Equation>();
+            StreamReader reader = new StreamReader(@"TestFiles/Ins/SimpleCycle.txt");
+
+            StreamWriter writer = new StreamWriter(@"TestFiles/Tmps/SimpleCycleMy.txt");
+            Table t = new Table();
+            t.ReadTable(reader, equations, q, "Huge.txt");
+
+            for (int i = 0; i < equations.Count; i++)
+            {
+               EquationSolver.Solve(t, equations[i], equations);
+            }
+            t.PrintTable(writer);
+            writer.Close();
+            bool same = Utils.FileDiff(@"TestFiles/Outs/SimpleCycleRes.txt", @"TestFiles/Tmps/SimpleCycleMy.txt");
+            Assert.IsTrue(same);
         }
 
 

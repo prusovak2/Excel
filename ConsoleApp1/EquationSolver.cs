@@ -8,23 +8,34 @@ namespace Excel
     { 
         public static void Solve(Table MainTable, Equation EqToSolve, List<Equation> EquationList)
         {
+            CellType incomingType = MainTable.GetType(EqToSolve.OwnAdr);
+
+            //this equation has already been solved
+            if (incomingType != CellType.Equation)
+            {
+                return;
+            }
+
             Stack<Equation> stack = new Stack<Equation>();
-            MainTable.Cells[EqToSolve.OwnAdr.Row][EqToSolve.OwnAdr.Column].Type = CellType.InEquation;
+            //change equation type so that it represents that equation is in stack
+            MainTable.SetType(EqToSolve.OwnAdr, CellType.InEquation);
+           // MainTable.Cells[EqToSolve.OwnAdr.Row][EqToSolve.OwnAdr.Column].Type = CellType.InEquation;
             stack.Push(EqToSolve);
 
             //Table curentTable = MainTable;
-            bool inCycle = false;
+            //bool inCycle = false;
 
             while (stack.Count > 0)
             {
-                Equation BeingSolved = stack.Pop();
+                Equation BeingSolved = stack.Peek();
                 CellType type1 = MainTable.GetType(BeingSolved.Arg1);
                 CellType type2 = MainTable.GetType(BeingSolved.Arg2);
 
-                if (inCycle)
+               /* if (inCycle)
                 {
                     MainTable.SetType(BeingSolved.OwnAdr, CellType.Cycle);
-                }
+                    continue;
+                }*/
 
                 CellType BeingSolvedType = MainTable.GetType(BeingSolved.OwnAdr);
                 if(BeingSolvedType!= CellType.InEquation)
@@ -50,45 +61,74 @@ namespace Excel
                         int result = BeingSolved.CountEquation(val1, val2);
                         MainTable.SetNumberTypeAndValue(BeingSolved.OwnAdr, result);
                     }
+                    stack.Pop();
+                    continue;
                 }
 
-                else if (type1 == CellType.InEquation || type2 == CellType.InEquation)
+                if (type1 == CellType.InEquation || type2 == CellType.InEquation)
                 {
-                    //we found cycle - one of arguments is equation, that is in current solving process
-                    inCycle = true;
-                    MainTable.SetType(BeingSolved.OwnAdr, CellType.Cycle);
+                    //we found cycle - one of arguments is equation, that already is in current solving process
+                    if (type1 == CellType.InEquation)
+                    {
+                        MainTable.SetType(BeingSolved.Arg1, CellType.Cycle);
+                    }
+                    else if(type2 == CellType.InEquation)
+                    {
+                        MainTable.SetType(BeingSolved.Arg2, CellType.Cycle);
+                    }
+                    if(type1 == CellType.InEquation && type2 == CellType.InEquation)
+                    {
+                        //TODO:remove
+                        throw new Exception("unexpected behaviour, cycle in cycle");
+                    }
+
+                    //returnInCycle should be set to same equation as BeingSolved
+                    Equation returnInCycle = stack.Pop();
+                    CellType returnType = MainTable.GetType(returnInCycle.OwnAdr);
+                    while (returnType != CellType.Cycle)
+                    {
+                        //while do not encounter cell already marked as cycle return through cycle and mark all its cells
+                        MainTable.SetType(returnInCycle.OwnAdr, CellType.Cycle);
+                        if (stack.Count > 0)
+                        {
+                            returnInCycle = stack.Pop();
+                        }
+                        returnType = MainTable.GetType(returnInCycle.OwnAdr);
+                    }
+
+                        while (stack.Count > 0)
+                    {
+                        Equation pointsToCycle = stack.Pop();
+                        MainTable.SetType(pointsToCycle.OwnAdr, CellType.Error);
+                    }
+                    continue;
                 }
 
-                else if(type1==CellType.DivZero||type1==CellType.Cycle || type1==CellType.MissOperator || type1== CellType.Inval || type1==CellType.FlawedFormula || type1 == CellType.Error ||
+                if(type1==CellType.DivZero||type1==CellType.Cycle || type1==CellType.MissOperator || type1== CellType.Inval || type1==CellType.FlawedFormula || type1 == CellType.Error ||
                     type2 == CellType.DivZero || type2 == CellType.Cycle || type2 == CellType.MissOperator || type2 == CellType.Inval || type2 == CellType.FlawedFormula || type2 == CellType.Error)
                 {
                     //at least one of arguments is somehow invalid 
                     MainTable.SetType(BeingSolved.OwnAdr, CellType.Error);
+                    stack.Pop();
+                    continue;
                 }
 
-                else if(type1==CellType.Equation && type2 == CellType.Equation)
+                
+                if(type1 == CellType.Equation)
                 {
                     MainTable.SetType(BeingSolved.Arg1, CellType.InEquation);
-                    MainTable.SetType(BeingSolved.Arg2, CellType.InEquation);
-                    stack.Push(BeingSolved);
-                    Equation eq1 = EquationList[MainTable.GetValue(BeingSolved.Arg1)];
-                    Equation eq2 = EquationList[MainTable.GetValue(BeingSolved.Arg2)];
-                    stack.Push(eq2);
-                    stack.Push(eq1);
-                }
-                else if(type1 == CellType.Equation)
-                {
-                    MainTable.SetType(BeingSolved.Arg1, CellType.InEquation);
-                    stack.Push(BeingSolved);
+                    //stack.Push(BeingSolved);
                     Equation eq1 = EquationList[MainTable.GetValue(BeingSolved.Arg1)];
                     stack.Push(eq1);
+                    continue;
                 }
-                else if (type2 == CellType.Equation)
+                if (type2 == CellType.Equation)
                 {
                     MainTable.SetType(BeingSolved.Arg2, CellType.InEquation);
-                    stack.Push(BeingSolved);
+                    //stack.Push(BeingSolved);
                     Equation eq2 = EquationList[MainTable.GetValue(BeingSolved.Arg2)];
                     stack.Push(eq2);
+                    continue;
                 }
 
 

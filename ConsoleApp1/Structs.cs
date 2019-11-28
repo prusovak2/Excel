@@ -8,31 +8,46 @@ namespace Excel
 
     public struct Cell
     {
-        public int Value;
+        private int _Value; 
         public CellType Type;
 
+        public int Value 
+        {
+            get 
+            {
+                //if (this.Type != CellType.Number)
+                //    throw new Exception();
+                return _Value; 
+            }
+            set => _Value = value; 
+        }
+        public int EquationIndex { get => _Value; set => _Value = value; }
+
+        public bool IsError { get => (byte)this.Type >= 128; }
+
+        private static readonly char[] delims = { '=', '+', '-', '*', '/' };
         public static int EquationCounter=0;
 
         public Cell(int value, CellType type)
         {
-            this.Value = value;
+            this._Value = value;
             this.Type = type;
         }
 
         public static Cell TryCreateEquationCell(string input, Address AdrOfCellCreated , List<Equation> equationList, Queue<string> FilesToRead)
         {
-            char[] delims = { '=', '+', '-', '*', '/' };
-            string[] splittedInput = input.Split(delims);
+            
+            string[] splittedInput = input.Split(Cell.delims);
             //input surely contains =   Length<3 means missing operator 
             if (splittedInput.Length < 3)
             {
-                Cell newCell = new Cell(default, CellType.MissOperator);
+                Cell newCell = new Cell(default(int), CellType.MissOperator);
                 return newCell;
             }
             //some extra operators somwhere, where they should not be
             if (splittedInput.Length > 3)
             {
-                Cell newCell = new Cell(default, CellType.FlawedFormula);
+                Cell newCell = new Cell(default(int), CellType.FlawedFormula);
                 return newCell;
             }
 
@@ -54,7 +69,7 @@ namespace Excel
             }
             else //address parse failed - flawed formula
             {
-                Cell newCell = new Cell(default, CellType.FlawedFormula);
+                Cell newCell = new Cell(default(int), CellType.FlawedFormula);
                 return newCell;
             }
         }
@@ -63,7 +78,7 @@ namespace Excel
             switch (this.Type)
             {
                 case CellType.Number:
-                    writer.Write(this.Value);
+                    writer.Write(this._Value);
                     return;
                 case CellType.Empty:
                     writer.Write("[]");
@@ -102,7 +117,7 @@ namespace Excel
         Equation,
         InEquation,
 
-        Inval,
+        Inval = 128,
         Error,
         DivZero,
         Cycle,
@@ -136,7 +151,7 @@ namespace Excel
             int column = -1; //really important for making Horner to index from 0
 
             string cellPartOfAdr;
-            string file = default;
+            string file = string.Empty;
             string[] splittedAdr = probablyAddress.Split('!', StringSplitOptions.RemoveEmptyEntries);
             
             if(splittedAdr.Length == 2) //address of cell from another file
@@ -160,7 +175,7 @@ namespace Excel
             }
             if (recordCounter == 0) //column part of adr is missing
             {
-                address = default;
+                address = default(Address);
                 return false;
             }
             recordCounter = 0;
@@ -173,7 +188,7 @@ namespace Excel
             row--; //index from 0
             if (recordCounter == 0 || row<0 ) //flawed row part
             {
-                address = default;
+                address = default(Address);
                 return false;
             }
 
@@ -185,7 +200,13 @@ namespace Excel
                 FilesToRead.Enqueue(file); //another file to read has been found
             }
 
+        
+
             return true;
+        }
+        public override string ToString()
+        {
+            return $"{this.Column}:{this.Row}";
         }
     }
 
@@ -238,6 +259,11 @@ namespace Excel
                     throw new Exception("totaly senceless behaviour");
 
             }
+        }
+        public override string ToString()
+        {
+            return $"{ this.Arg1.Column}:{ this.Arg1.Row} {this.operand} { this.Arg2.Column}:{ this.Arg2.Row}";
+             
         }
     }
     public enum Operand :byte
