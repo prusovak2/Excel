@@ -5,10 +5,19 @@ using System.IO;
 
 namespace Excel
 {
-
+    /// <summary>
+    /// Represents one cell of excel sheet
+    /// </summary>
     public struct Cell
     {
+        /// <summary>
+        /// IMPORTANT TRICK: if a cell is number, containts its value, if a cell if equation, contains its index in equation list
+        /// to save memory
+        /// </summary>
         private int _Value; 
+        /// <summary>
+        /// info about what kind of data does a cell contains
+        /// </summary>
         public CellType Type;
 
         public int Value 
@@ -25,7 +34,13 @@ namespace Excel
 
         public bool IsError { get => (byte)this.Type >= 128; }
 
+        /// <summary>
+        /// to split input line
+        /// </summary>
         private static readonly char[] delims = { '=', '+', '-', '*', '/' };
+        /// <summary>
+        /// to index equations in equation list
+        /// </summary>
         public static int EquationCounter=0;
 
         public Cell(int value, CellType type)
@@ -33,7 +48,14 @@ namespace Excel
             this._Value = value;
             this.Type = type;
         }
-
+        /// <summary>
+        /// Creates equation cell is input string is valid equation, creates cell of Flawed formula or MissOperator type otherwise
+        /// </summary>
+        /// <param name="input">string probably containing address</param>
+        /// <param name="AdrOfCellCreated"></param>
+        /// <param name="equationList">list to store created equation struct</param>
+        /// <param name="FilesToRead">for a multifile version, not implemented</param>
+        /// <returns>returns cell created - equation cell, flawed formula cell or Missing Operator cell</returns>
         public static Cell TryCreateEquationCell(string input, Address AdrOfCellCreated , List<Equation> equationList, Queue<string> FilesToRead)
         {
             
@@ -51,19 +73,21 @@ namespace Excel
                 return newCell;
             }
 
-            //Length==3
+            //Length==3 : one operator
             bool a = Address.TryParse(splittedInput[1], out Address firstArg, FilesToRead);
             bool b = Address.TryParse(splittedInput[2], out Address secondArg, FilesToRead);
-            int opPosition = 1 + splittedInput[1].Length;
-            char operand = input[opPosition];
-            if (a && b) //valid equation
+            int opPosition = 1 + splittedInput[1].Length; //count where ope
+            char Operator = input[opPosition];
+            if (a && b) //valid equation, both address parses succeeded
             {
+                //create new equation cell, equation counter is its index in Equation list
                 Cell newCell = new Cell(Cell.EquationCounter, CellType.Equation);
 
                 Cell.EquationCounter++;
 
-
-                Equation eq = new Equation(AdrOfCellCreated, firstArg, secondArg, operand);
+                //create new equation, coresponding to equation cell just created
+                Equation eq = new Equation(AdrOfCellCreated, firstArg, secondArg, Operator);
+                //add equation list, index coresponds to value stored in equation cell
                 equationList.Add(eq);
                 return newCell;
             }
@@ -73,6 +97,10 @@ namespace Excel
                 return newCell;
             }
         }
+        /// <summary>
+        /// prints cell acording to its type and contend
+        /// </summary>
+        /// <param name="writer"></param>
         public void PrintCell(StreamWriter writer)
         {
             switch (this.Type)
@@ -115,7 +143,7 @@ namespace Excel
         Number,
         Empty,
         Equation,
-        InEquation,
+        InEquation, //important for solving equation, indicates that equation conected to cell is part of current solving process
 
         Inval = 128,
         Error,
@@ -140,9 +168,16 @@ namespace Excel
             this.File = file;
         }
 
+        /// <summary>
+        /// determines whether string has valid syntax of excel cell address, if so, creates new Address instance
+        /// </summary>
+        /// <param name="probablyAddress">string to be parsed</param>
+        /// <param name="address">address created</param>
+        /// <param name="FilesToRead">for multifile version</param>
+        /// <returns>true if probablyAddress has corect address syntax and was parsed succesfully, false otherwise</returns>
         public static bool TryParse(String probablyAddress, out Address address, Queue<string> FilesToRead )
         {
-            const int A = 65;
+            const int A = 65; //just constants for ascii values
             const int Z = 90;
             const int zero = 48;
             const int nine = 57;
@@ -165,11 +200,11 @@ namespace Excel
                 cellPartOfAdr = probablyAddress; //address of cell from the same file
             }
 
-            int recordCounter = 0;
+            int recordCounter = 0; //we need to know, whether address contains at least one letter -  index of collumn
             int i = 0;
             while(i<cellPartOfAdr.Length && cellPartOfAdr[i]>=A && cellPartOfAdr[i] <= Z )
             {
-                column = (column + 1) * 26 + cellPartOfAdr[i] - A; //Horner scheme
+                column = (column + 1) * 26 + cellPartOfAdr[i] - A; //Horner scheme - making number from letter index of column
                 recordCounter++;
                 i++;
             }
@@ -178,10 +213,10 @@ namespace Excel
                 address = default(Address);
                 return false;
             }
-            recordCounter = 0;
+            recordCounter = 0; //we need to know, whether address contains at least one number -  index of row
             while (i < cellPartOfAdr.Length && cellPartOfAdr[i] >= zero && cellPartOfAdr[i] <= nine)
             {
-                row = row * 10 + cellPartOfAdr[i] - zero;
+                row = row * 10 + cellPartOfAdr[i] - zero; //Horner scheme 
                 recordCounter++;
                 i++;
             }
@@ -209,7 +244,9 @@ namespace Excel
             return $"{this.Column}:{this.Row}";
         }
     }
-
+    /// <summary>
+    /// represents equation from excel sheet, is conected to particular Cell
+    /// </summary>
     public struct Equation
     {
         public Address OwnAdr;
@@ -217,7 +254,7 @@ namespace Excel
         public Address Arg2;
         public Operand operand;
 
-
+       
         public Equation(Address own, Address arg1, Address arg2, char operand)
         {
             this.OwnAdr = own;
@@ -243,6 +280,12 @@ namespace Excel
                     throw new Exception("Invalid behavior of equation builder");
             }
         }
+        /// <summary>
+        /// counts equation, whose both arguments are numbers
+        /// </summary>
+        /// <param name="arg1">args read from adequate cell</param>
+        /// <param name="arg2"></param>
+        /// <returns>sollution of equation</returns>
         public int CountEquation(int arg1, int arg2)
         {
             switch (this.operand)

@@ -52,7 +52,7 @@ namespace Excel
             }
             try
             {
-                Writer = new StreamWriter(args[1], false); //TODO:append?
+                Writer = new StreamWriter(args[1], false); 
             }
             catch (Exception e) when (e is ArgumentException || e is ArgumentNullException || e is UnauthorizedAccessException || e is DirectoryNotFoundException || e is IOException || e is PathTooLongException)
             {

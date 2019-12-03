@@ -155,16 +155,7 @@ namespace ExcelTests
                 System.Console.WriteLine("{0} {1}:{2}",item.operand, item.OwnAdr.Column, item.OwnAdr.Row);
             }
         }
-        [TestMethod]
-        public void CountEquationTest()
-        {
-            Assert.Fail();
-        }
-        [TestMethod]
-        public void PrintCellTest()
-        {
-            Assert.Fail();
-        }
+
         [TestMethod]
         public void PrintTable()
         {

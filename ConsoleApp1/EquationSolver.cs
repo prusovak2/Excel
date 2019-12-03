@@ -6,24 +6,30 @@ namespace Excel
 {
     public static class EquationSolver
     { 
+        /// <summary>
+        /// attempts to solve equation, detects cycles and errors in excel sheet
+        /// </summary>
+        /// <param name="MainTable"></param>
+        /// <param name="EqToSolve">equation to be solved</param>
+        /// <param name="EquationList">list of all equations from input file</param>
         public static void Solve(Table MainTable, Equation EqToSolve, List<Equation> EquationList)
         {
+            
             CellType incomingType = MainTable.GetType(EqToSolve.OwnAdr);
 
-            //this equation has already been solved
+            //this equation has already been solved - in some previous iteration has been encountered as argument
             if (incomingType != CellType.Equation)
             {
                 return;
             }
 
+            //to store equations, that are to be solved in this call of Solve function
             Stack<Equation> stack = new Stack<Equation>();
             //change equation type so that it represents that equation is in stack
             MainTable.SetType(EqToSolve.OwnAdr, CellType.InEquation);
-           // MainTable.Cells[EqToSolve.OwnAdr.Row][EqToSolve.OwnAdr.Column].Type = CellType.InEquation;
             stack.Push(EqToSolve);
 
             //Table curentTable = MainTable;
-            //bool inCycle = false;
 
             while (stack.Count > 0)
             {
@@ -31,11 +37,7 @@ namespace Excel
                 CellType type1 = MainTable.GetType(BeingSolved.Arg1);
                 CellType type2 = MainTable.GetType(BeingSolved.Arg2);
 
-               /* if (inCycle)
-                {
-                    MainTable.SetType(BeingSolved.OwnAdr, CellType.Cycle);
-                    continue;
-                }*/
+              
 
                 CellType BeingSolvedType = MainTable.GetType(BeingSolved.OwnAdr);
                 if(BeingSolvedType!= CellType.InEquation)
@@ -61,7 +63,7 @@ namespace Excel
                         int result = BeingSolved.CountEquation(val1, val2);
                         MainTable.SetNumberTypeAndValue(BeingSolved.OwnAdr, result);
                     }
-                    stack.Pop();
+                    stack.Pop(); //it has been solved
                     continue;
                 }
 
@@ -85,9 +87,11 @@ namespace Excel
                     //returnInCycle should be set to same equation as BeingSolved
                     Equation returnInCycle = stack.Pop();
                     CellType returnType = MainTable.GetType(returnInCycle.OwnAdr);
+
+                    //tracking back the cycle
                     while (returnType != CellType.Cycle)
                     {
-                        //while do not encounter cell already marked as cycle return through cycle and mark all its cells
+                        //while do not encounter cell already marked as Cycle (that means that we already went round the whole cycle) return through cycle and mark all its cells
                         MainTable.SetType(returnInCycle.OwnAdr, CellType.Cycle);
                         if (stack.Count > 0)
                         {
@@ -96,8 +100,8 @@ namespace Excel
                         returnType = MainTable.GetType(returnInCycle.OwnAdr);
                     }
 
-                        while (stack.Count > 0)
-                    {
+                        while (stack.Count > 0) //all equations in stack (being solved in this call but not a part of a cycle)
+                    {                           //are (transitively) refering to some Cycle equation - they are of Error type
                         Equation pointsToCycle = stack.Pop();
                         MainTable.SetType(pointsToCycle.OwnAdr, CellType.Error);
                     }
@@ -113,19 +117,19 @@ namespace Excel
                     continue;
                 }
 
-                
-                if(type1 == CellType.Equation)
+                //this aproach to adding equqtions to stack simulates dfs search of equation tree
+                //stack always contains only equations from one path from root (EqToSolve) to leaf (either number or flawed cell)
+                if (type1 == CellType.Equation)
                 {
+                    //find equation correspondint to first argument and mark it as necessary to be solved
                     MainTable.SetType(BeingSolved.Arg1, CellType.InEquation);
-                    //stack.Push(BeingSolved);
-                    Equation eq1 = EquationList[MainTable.GetValue(BeingSolved.Arg1)];
+                    Equation eq1 = EquationList[MainTable.GetValue(BeingSolved.Arg1)]; //value of equation cell is index of coresponding eq in eq list
                     stack.Push(eq1);
                     continue;
                 }
                 if (type2 == CellType.Equation)
                 {
                     MainTable.SetType(BeingSolved.Arg2, CellType.InEquation);
-                    //stack.Push(BeingSolved);
                     Equation eq2 = EquationList[MainTable.GetValue(BeingSolved.Arg2)];
                     stack.Push(eq2);
                     continue;
